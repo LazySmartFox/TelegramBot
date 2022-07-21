@@ -15,6 +15,9 @@ namespace Bot
         static string token;
         
         static TelegramBotClient botClient = new TelegramBotClient(GetToken(token));
+
+        static Files file = new Files();
+
         static string GetToken(string token)
         {
             using (StreamReader sr = new StreamReader("token.txt"))
@@ -22,23 +25,48 @@ namespace Bot
                return sr.ReadToEnd();
             }    
         }
+        static async Task UpdateMessage (ITelegramBotClient botClient, Update update)
+        {            
+            var message = update.Message;
+            if (message.Text.ToLower() == "/start")
+            {
+                await botClient.SendTextMessageAsync(message.Chat, "Добро пожаловать, я бот Хранитель, ознакомиться со списком команд можно набрав /help");
+                return;
+            }
+            else if (message.Text.ToLower() == "/help")
+            {
+                await botClient.SendTextMessageAsync(message.Chat, "Список команд:" +
+                    "\n/show - показать список сохранённых файлов" +
+                    "\n/downloadImage {имя файла} - скачать изображение");
+                return;
+            }
+            //Не выводится сообщение, что передавать в метод класса Files
+            else if  (message.Text.ToLower() == "/show")
+            {
+                file.ShowFiles(botClient, update);
+                return;
+            }
+
+            await botClient.SendTextMessageAsync(message.Chat, "Неизвестная команда");
+        }
         public static async Task UpdateAsync (ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message)
+            
+
+            if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message && update.Message.Text != null)
             {
-                var message = update.Message;
-                if (message.Text.ToLower() == "/start")
-                {
-                    await botClient.SendTextMessageAsync(message.Chat, "Добро пожаловать, я бот Хранитель, ознакомиться со списком команд можно набрав /help");
-                    return;
-                }
-                if (message.Text.ToLower() == "/help")
-                {
-                    await botClient.SendTextMessageAsync(message.Chat, "Список команд:" +
-                        "\n/showAll - показать список сохранённых файлов" +
-                        "\n/download {имя файла} - скачать файл");
-                }
-                await botClient.SendTextMessageAsync(message.Chat, "Неизвестная команда");
+                UpdateMessage(botClient, update);
+                return;
+            }
+            if (update.Message.Type == Telegram.Bot.Types.Enums.MessageType.Photo)
+            {
+                file.DownloadFilePhoto(botClient, update);
+                return;
+            }
+            if (update.Message.Type == Telegram.Bot.Types.Enums.MessageType.Document)
+            {
+                file.DownloadFileDocument(botClient, update);
+                return;
             }
 
         }
@@ -62,9 +90,7 @@ namespace Bot
                 receiverOptions,
                 cancellationToken
                 );
-            Console.ReadLine();
-            
-            
+            Console.ReadLine();                        
         }
            
     }
