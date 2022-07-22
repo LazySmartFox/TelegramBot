@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
-using Telegram.Bot.Exceptions;
 using Telegram.Bot.Extensions.Polling;
 using Telegram.Bot.Types;
 
@@ -33,42 +32,54 @@ namespace Bot
                 await botClient.SendTextMessageAsync(message.Chat, "Добро пожаловать, я бот Хранитель, ознакомиться со списком команд можно набрав /help");
                 return;
             }
+
             else if (message.Text.ToLower() == "/help")
             {
                 await botClient.SendTextMessageAsync(message.Chat, "Список команд:" +
                     "\n/show - показать список сохранённых файлов" +
-                    "\n/downloadImage {имя файла} - скачать изображение");
+                    "\nДля скачивания файла введит его имя и расширение");
                 return;
             }
-            //Не выводится сообщение, что передавать в метод класса Files
+            
             else if  (message.Text.ToLower() == "/show")
             {
                 file.ShowFiles(botClient, update);
                 return;
             }
 
+            else if (System.IO.File.Exists($"D:\\downloaded\\{message.Text}"))
+            {            
+                file.UploadFile(botClient, update);
+                return;
+            }
+
             await botClient.SendTextMessageAsync(message.Chat, "Неизвестная команда");
         }
         public static async Task UpdateAsync (ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
-        {
-            
-
+        {            
             if (update.Type == Telegram.Bot.Types.Enums.UpdateType.Message && update.Message.Text != null)
             {
                 UpdateMessage(botClient, update);
                 return;
             }
+
             if (update.Message.Type == Telegram.Bot.Types.Enums.MessageType.Photo)
             {
                 file.DownloadFilePhoto(botClient, update);
                 return;
             }
+
             if (update.Message.Type == Telegram.Bot.Types.Enums.MessageType.Document)
             {
                 file.DownloadFileDocument(botClient, update);
                 return;
             }
 
+            if (update.Message.Type == Telegram.Bot.Types.Enums.MessageType.Voice)
+            {
+                file.DownloadFileAudio(botClient, update);
+                return;
+            }
         }
         public static async Task ErrorAsync (ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {
